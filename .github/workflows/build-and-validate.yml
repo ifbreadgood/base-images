@@ -133,7 +133,7 @@ jobs:
             type=ref,event=pr
 
       - name: Build target image (with maximized GHA cache)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.dir }}
           file: ./${{ matrix.dir }}/Dockerfile
@@ -170,7 +170,7 @@ jobs:
 
       - name: Push image to GHCR
         if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.push_images == true }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./${{ matrix.dir }}
           file: ./${{ matrix.dir }}/Dockerfile
