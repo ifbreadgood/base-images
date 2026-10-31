@@ -1,12 +1,24 @@
 {
   "name": "terraform",
-  "description": "Terraform v1.16 base image containing Terraform, TFLint, and Checkov validators",
+  "description": "Terraform base images (v1.16 and v1.17) containing Terraform, TFLint, and Checkov validators",
   "targets": [
     {
-      "name": "terraform-base",
+      "name": "terraform-1.16",
       "target": "terraform-base",
-      "validation_arg": "base",
+      "build_args": {
+        "TERRAFORM_VERSION": "1.16.7"
+      },
+      "validation_arg": "1.16",
       "default": true
+    },
+    {
+      "name": "terraform-1.17",
+      "target": "terraform-base",
+      "build_args": {
+        "TERRAFORM_VERSION": "1.17.1"
+      },
+      "validation_arg": "1.17",
+      "default": false
     }
   ]
 }

@@ -2,10 +2,10 @@
 set -euo pipefail
 
 IMAGE_TAG="${1:-}"
-TARGET_TYPE="${2:-base}"
+EXPECTED_VERSION="${2:-1.16}"
 
 if [[ -z "$IMAGE_TAG" ]]; then
-  echo "Usage: $0 <image-tag> [target]"
+  echo "Usage: $0 <image-tag> [expected_version (1.16|1.17)]"
   exit 1
 fi
 
@@ -51,13 +51,13 @@ else
 fi
 
 # 3. Terraform binary and version check
-log_info "Verifying Terraform version v1.16..."
+log_info "Verifying Terraform version v${EXPECTED_VERSION}..."
 TF_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" terraform version)"
 echo "$TF_VERSION_OUTPUT"
-if echo "$TF_VERSION_OUTPUT" | grep -qE "Terraform v1\.16\."; then
-  log_pass "Terraform version 1.16 verified"
+if echo "$TF_VERSION_OUTPUT" | grep -qE "Terraform v${EXPECTED_VERSION}\."; then
+  log_pass "Terraform version ${EXPECTED_VERSION} verified"
 else
-  log_fail "Terraform version v1.16 not detected in output"
+  log_fail "Terraform version v${EXPECTED_VERSION} not detected in output"
 fi
 
 # 4. Terraform formatting and validation check

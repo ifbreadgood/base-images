@@ -130,6 +130,7 @@ jobs:
           target: ${{ matrix.target || '' }}
           load: true
           tags: ${{ matrix.image_name }}:test
+          build-args: ${{ matrix.build_args }}
           cache-from: |
             type=gha,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}
           cache-to: |
@@ -158,5 +159,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.build_args }}
           cache-from: |
             type=gha,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}

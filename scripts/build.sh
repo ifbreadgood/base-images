@@ -24,11 +24,16 @@ fi
 
 TARGET=""
 RUN_TEST=false
+EXTRA_BUILD_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --target)
       TARGET="$2"
+      shift 2
+      ;;
+    --build-arg)
+      EXTRA_BUILD_ARGS+=(--build-arg "$2")
       shift 2
       ;;
     --test)
@@ -43,7 +48,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 TAG="${IMAGE_NAME}:test"
-BUILD_ARGS=()
+BUILD_ARGS=("${EXTRA_BUILD_ARGS[@]}")
 
 if [[ -n "$TARGET" ]]; then
   BUILD_ARGS+=(--target "$TARGET")

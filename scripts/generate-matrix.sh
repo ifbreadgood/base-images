@@ -73,12 +73,24 @@ perl -MJSON::PP -e '
     ];
 
     for my $target (@$targets) {
+      my $build_args = "";
+      if (ref($target->{build_args}) eq "HASH") {
+        my @args;
+        for my $k (sort keys %{$target->{build_args}}) {
+          push @args, "$k=" . $target->{build_args}{$k};
+        }
+        $build_args = join("\n", @args);
+      } elsif ($target->{build_args}) {
+        $build_args = $target->{build_args};
+      }
+
       push @matrix_entries, {
         image          => $img,
         dir            => "images/$img",
         target         => $target->{target} || "",
         image_name     => $target->{name} || $img,
         validation_arg => $target->{validation_arg} || "",
+        build_args     => $build_args,
       };
     }
   }

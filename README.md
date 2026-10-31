@@ -13,7 +13,7 @@ Scalable, multi-image monorepo containing production-ready, security-hardened ba
 │   ├── generate-matrix.sh          # Dynamic matrix generator for GitHub Actions
 │   └── build.sh                    # Local build and validation CLI
 └── images/
-    ├── terraform/                  # Terraform v1.16 base image with bundled TFLint & Checkov
+    ├── terraform/                  # Terraform v1.16 & v1.17 base images with bundled TFLint & Checkov
     │   ├── Dockerfile
     │   ├── image.json              # Image metadata and targets
     │   ├── README.md
@@ -67,8 +67,11 @@ GitHub Actions will automatically detect changes in `images/<name>/` and build/v
 Use the unified helper script:
 
 ```bash
-# Build and test Terraform base image
-./scripts/build.sh terraform --test
+# Build and test Terraform 1.16 base image
+./scripts/build.sh terraform --target terraform-base --build-arg TERRAFORM_VERSION=1.16.7 --test
+
+# Build and test Terraform 1.17 base image
+./scripts/build.sh terraform --target terraform-base --build-arg TERRAFORM_VERSION=1.17.1 --test
 
 # Build and test Go builder
 ./scripts/build.sh golang --test

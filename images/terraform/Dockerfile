@@ -124,6 +124,6 @@ FROM terraform-base AS test
 USER 10001
 
 # Execute verification checks inside container during BuildKit build
-RUN terraform version | grep -E "Terraform v1\.16\." \
+RUN terraform version | grep -E "Terraform v1\.(16|17)\." \
     && tflint --version \
     && checkov --version
