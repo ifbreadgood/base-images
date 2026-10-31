@@ -11,6 +11,8 @@ FROM --platform=$BUILDPLATFORM alpine:3.20 AS terraform-downloader
 ARG TARGETARCH=amd64
 ARG TERRAFORM_VERSION
 
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+
 RUN apk add --no-cache curl unzip ca-certificates
 
 WORKDIR /downloads
@@ -30,6 +32,8 @@ FROM --platform=$BUILDPLATFORM alpine:3.20 AS tflint-downloader
 
 ARG TARGETARCH=amd64
 ARG TFLINT_VERSION=v0.65.0
+
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 RUN apk add --no-cache curl unzip ca-certificates
 
@@ -80,6 +84,7 @@ LABEL maintainer="base-images" \
       org.opencontainers.image.title="Terraform Base Image" \
       org.opencontainers.image.description="Terraform v${TERRAFORM_VERSION} CI/CD base image with bundled TFLint and Checkov validators"
 
+# hadolint ignore=DL3064
 ARG USERNAME=terraform
 ARG USER_UID=10001
 ARG USER_GID=10001
@@ -128,6 +133,8 @@ CMD ["/bin/bash"]
 FROM terraform-base AS test
 
 USER 10001
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Execute verification checks inside container during BuildKit build
 RUN terraform version | grep -E "Terraform v1\.(16|17)\." \

@@ -118,7 +118,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Docker metadata
         id: meta
@@ -183,3 +183,4 @@ jobs:
           build-args: ${{ matrix.build_args }}
           cache-from: |
             type=gha,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}
+
