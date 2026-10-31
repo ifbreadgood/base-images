@@ -1,3 +1,15 @@
 # Upstream vulnerability in precompiled Go binaries (terraform 1.16.7 and tflint v0.65.0).
 # Upstream patch releases with go-jose/v4 v4.1.6 are pending from HashiCorp and terraform-linters.
 CVE-2026-116587
+
+# Upstream vulnerabilities in official node:22-bookworm-slim base image bundled npm (v10.9.9).
+# Dependencies will be updated by upstream Node.js release in future node:22 patch images.
+CVE-2026-102276
+CVE-2026-102278
+CVE-2026-13149
+CVE-2026-14257
+CVE-2026-69152
+CVE-2026-69192
+CVE-2026-9496
+CVE-2026-33671
+CVE-2026-48815
