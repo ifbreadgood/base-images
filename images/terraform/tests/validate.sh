@@ -64,8 +64,8 @@ fi
 # Fixtures are mounted read-only and copied to a writable scratch dir so that
 # terraform/tflint/checkov never write artifacts into the host checkout.
 run_in_fixture() {
-  docker run --rm -v "${FIXTURE_DIR}:/fixtures:ro" -w /tmp/work "${IMAGE_TAG}" \
-    bash -euo pipefail -c 'mkdir -p /tmp/work && cp -r /fixtures/. /tmp/work/ && eval "$1"' _ "$1"
+  docker run --rm -v "${FIXTURE_DIR}:/fixtures:ro" "${IMAGE_TAG}" \
+    bash -euo pipefail -c 'mkdir -p /tmp/work && cp -r /fixtures/. /tmp/work/ && cd /tmp/work && eval "$1"' _ "$1"
 }
 
 log_info "Validating Terraform code in test fixture..."
