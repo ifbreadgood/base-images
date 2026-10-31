@@ -5,7 +5,7 @@ ARG GO_VERSION=1.26-bookworm
 # ------------------------------------------------------------------------------
 # Stage 1: Tools Downloader
 # ------------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS tools-downloader
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS tools-downloader
 
 ARG GOLANGCI_LINT_VERSION=v2.15.0
 ARG TARGETARCH=amd64
