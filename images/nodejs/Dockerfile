@@ -8,6 +8,7 @@ LABEL maintainer="base-images" \
       org.opencontainers.image.title="Node.js Application Builder Base Image" \
       org.opencontainers.image.description="Optimized base image for building Node.js applications in CI/CD"
 
+# hadolint ignore=DL3064
 ARG USERNAME=node
 ARG USER_UID=10001
 ARG USER_GID=10001
