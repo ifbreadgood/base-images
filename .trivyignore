@@ -1,0 +1,3 @@
+# Upstream vulnerability in precompiled Go binaries (terraform 1.16.7 and tflint v0.65.0).
+# Upstream patch releases with go-jose/v4 v4.1.6 are pending from HashiCorp and terraform-linters.
+CVE-2026-116587

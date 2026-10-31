@@ -54,8 +54,8 @@ FROM python:${PYTHON_VERSION} AS checkov-builder
 
 ARG CHECKOV_VERSION=3.4.0
 ARG PIP_VERSION=25.0.1
-ARG SETUPTOOLS_VERSION=75.8.2
-ARG WHEEL_VERSION=0.45.1
+ARG SETUPTOOLS_VERSION=84.2.1
+ARG WHEEL_VERSION=0.48.0
 
 # Install build dependencies with persistent apt cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -70,8 +70,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install checkov into isolated virtual environment with persistent pip cache
 RUN --mount=type=cache,target=/root/.cache/pip \
     python3 -m venv /opt/checkov-venv && \
-    /opt/checkov-venv/bin/pip install "pip==${PIP_VERSION}" "setuptools==${SETUPTOOLS_VERSION}" "wheel==${WHEEL_VERSION}" && \
-    /opt/checkov-venv/bin/pip install "checkov==${CHECKOV_VERSION}"
+    /opt/checkov-venv/bin/pip install --upgrade "pip==${PIP_VERSION}" "setuptools==${SETUPTOOLS_VERSION}" "wheel==${WHEEL_VERSION}" && \
+    /opt/checkov-venv/bin/pip install "checkov==${CHECKOV_VERSION}" && \
+    /opt/checkov-venv/bin/pip uninstall -y setuptools wheel
 
 # ------------------------------------------------------------------------------
 # Stage 4: Complete Terraform Base Image (includes TFLint & Checkov validators)
