@@ -38,9 +38,13 @@ perl -MJSON::PP -e '
 
   my @changed = split(/\s+/, $changed_files);
   my %changed_images;
+  my $shared_changed = 0;
   for my $file (@changed) {
     if ($file =~ m{^images/([^/]+)/}) {
       $changed_images{$1} = 1;
+    } elsif ($file =~ m{^(scripts/|\.github/workflows/)}) {
+      # Shared pipeline changes must be validated against every image
+      $shared_changed = 1;
     }
   }
 
@@ -57,7 +61,7 @@ perl -MJSON::PP -e '
 
     # If changed files are provided, only include if changed
     if ($changed_files ne "" && $selected_image eq "all") {
-      next unless exists $changed_images{$img};
+      next unless $shared_changed || exists $changed_images{$img};
     }
 
     my $config_path = "$images_dir/$img/image.json";

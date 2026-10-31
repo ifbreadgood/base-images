@@ -24,3 +24,5 @@ docker build --target terraform-base --build-arg TERRAFORM_VERSION=1.16.7 -t ter
 docker build --target terraform-base --build-arg TERRAFORM_VERSION=1.17.1 -t terraform-1.17:test images/terraform
 ./images/terraform/tests/validate.sh terraform-1.17:test 1.17
 ```
+
+A plain `docker build images/terraform` now produces the base image (final stage `terraform` aliases `terraform-base`). Use `--target test` to run the in-build smoke test.

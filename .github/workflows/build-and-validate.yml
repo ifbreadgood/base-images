@@ -62,15 +62,25 @@ jobs:
 
       - name: Generate matrix
         id: generator
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
           chmod +x ./scripts/generate-matrix.sh
 
           CHANGED_FILES=""
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
-          elif [ "${{ github.event_name }}" = "push" ]; then
-            if git rev-parse HEAD~1 >/dev/null 2>&1; then
-              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          if [ "${EVENT_NAME}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only "origin/${BASE_REF}" HEAD)
+          elif [ "${EVENT_NAME}" = "push" ]; then
+            # Diff against the pre-push commit so multi-commit pushes are fully covered.
+            # Fall back to HEAD~1 on new branches (all-zero SHA) or unreachable commits.
+            BASE_SHA="${BEFORE_SHA}"
+            if [[ -z "${BASE_SHA}" || "${BASE_SHA}" =~ ^0+$ ]] || ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+              BASE_SHA="$(git rev-parse --verify --quiet HEAD~1 || true)"
+            fi
+            if [ -n "${BASE_SHA}" ]; then
+              CHANGED_FILES=$(git diff --name-only "${BASE_SHA}" HEAD)
             fi
           fi
 
@@ -141,6 +151,15 @@ jobs:
           chmod +x ./${{ matrix.dir }}/tests/validate.sh
           ./${{ matrix.dir }}/tests/validate.sh "${{ matrix.image_name }}:test" "${{ matrix.validation_arg || '' }}"
 
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ matrix.image_name }}:test
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
       - name: Log in to GitHub Container Registry
         if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.push_images == true }}
         uses: docker/login-action@v3
@@ -157,6 +176,8 @@ jobs:
           file: ./${{ matrix.dir }}/Dockerfile
           target: ${{ matrix.target || '' }}
           push: true
+          provenance: mode=max
+          sbom: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ matrix.build_args }}

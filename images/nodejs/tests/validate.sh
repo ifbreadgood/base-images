@@ -25,7 +25,9 @@ log_info "Starting validation for Node.js builder image: ${IMAGE_TAG}"
 # 1. Non-root user validation
 USER_NAME="$(docker run --rm "${IMAGE_TAG}" whoami)"
 [[ "$USER_NAME" == "node" ]] || log_fail "Expected user 'node', got ${USER_NAME}"
-log_pass "Container runs as non-root user (node)"
+USER_ID="$(docker run --rm "${IMAGE_TAG}" id -u)"
+[[ "$USER_ID" == "10001" ]] || log_fail "Expected UID 10001, got ${USER_ID}"
+log_pass "Container runs as non-root user (node, UID 10001)"
 
 # 2. Runtimes and package managers
 NODE_VER="$(docker run --rm "${IMAGE_TAG}" node --version)"

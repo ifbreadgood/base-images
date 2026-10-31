@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 ARG PYTHON_VERSION=3.12-slim-bookworm
+ARG TERRAFORM_VERSION=1.16.7
 
 # ------------------------------------------------------------------------------
 # Stage 1: Terraform Downloader (runs natively on build host for speed)
@@ -8,7 +9,7 @@ ARG PYTHON_VERSION=3.12-slim-bookworm
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS terraform-downloader
 
 ARG TARGETARCH=amd64
-ARG TERRAFORM_VERSION=1.16.7
+ARG TERRAFORM_VERSION
 
 RUN apk add --no-cache curl unzip ca-certificates
 
@@ -48,6 +49,9 @@ RUN ARCHIVE="tflint_linux_${TARGETARCH}.zip" \
 FROM python:${PYTHON_VERSION} AS checkov-builder
 
 ARG CHECKOV_VERSION=3.4.0
+ARG PIP_VERSION=25.0.1
+ARG SETUPTOOLS_VERSION=75.8.2
+ARG WHEEL_VERSION=0.45.1
 
 # Install build dependencies with persistent apt cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -62,7 +66,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install checkov into isolated virtual environment with persistent pip cache
 RUN --mount=type=cache,target=/root/.cache/pip \
     python3 -m venv /opt/checkov-venv && \
-    /opt/checkov-venv/bin/pip install --upgrade pip setuptools wheel && \
+    /opt/checkov-venv/bin/pip install "pip==${PIP_VERSION}" "setuptools==${SETUPTOOLS_VERSION}" "wheel==${WHEEL_VERSION}" && \
     /opt/checkov-venv/bin/pip install "checkov==${CHECKOV_VERSION}"
 
 # ------------------------------------------------------------------------------
@@ -70,9 +74,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # ------------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION} AS terraform-base
 
+ARG TERRAFORM_VERSION
+
 LABEL maintainer="base-images" \
       org.opencontainers.image.title="Terraform Base Image" \
-      org.opencontainers.image.description="Terraform v1.16 CI/CD base image with bundled TFLint and Checkov validators"
+      org.opencontainers.image.description="Terraform v${TERRAFORM_VERSION} CI/CD base image with bundled TFLint and Checkov validators"
 
 ARG USERNAME=terraform
 ARG USER_UID=10001
@@ -127,3 +133,10 @@ USER 10001
 RUN terraform version | grep -E "Terraform v1\.(16|17)\." \
     && tflint --version \
     && checkov --version
+
+# ------------------------------------------------------------------------------
+# Stage 6: Default Final Stage
+# Re-exposes terraform-base so a plain `docker build` produces the base image.
+# Build `--target test` to run the in-build smoke test.
+# ------------------------------------------------------------------------------
+FROM terraform-base AS terraform

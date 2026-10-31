@@ -7,7 +7,8 @@ Base image for building, testing, and packaging Node.js applications in CI/CD pi
 - Node.js 22 (LTS) on Debian Bookworm Slim.
 - Multi-package manager support out-of-the-box (`npm`, `yarn`, `pnpm` via Corepack).
 - Git, OpenSSH, and JQ pre-installed.
-- Non-root user `node` (UID `1000`).
+- Non-root user `node` (UID `10001`, aligned with the other images).
+- Pinned pnpm (`PNPM_VERSION`) and Yarn (`YARN_VERSION`) build args.
 
 ## Local Build & Validation
 

@@ -61,10 +61,16 @@ else
 fi
 
 # 4. Terraform formatting and validation check
+# Fixtures are mounted read-only and copied to a writable scratch dir so that
+# terraform/tflint/checkov never write artifacts into the host checkout.
+run_in_fixture() {
+  docker run --rm -v "${FIXTURE_DIR}:/fixtures:ro" -w /tmp/work "${IMAGE_TAG}" \
+    bash -euo pipefail -c 'mkdir -p /tmp/work && cp -r /fixtures/. /tmp/work/ && eval "$1"' _ "$1"
+}
+
 log_info "Validating Terraform code in test fixture..."
-docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" terraform fmt -check || log_fail "terraform fmt failed"
-docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" terraform init -backend=false || log_fail "terraform init failed"
-docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" terraform validate || log_fail "terraform validate failed"
+run_in_fixture "terraform fmt -check" || log_fail "terraform fmt failed"
+run_in_fixture "terraform init -backend=false && terraform validate" || log_fail "terraform init/validate failed"
 log_pass "Terraform initialization and validation passed"
 
 # 5. Bundled validators verification (TFLint and Checkov)
@@ -77,7 +83,7 @@ else
   log_fail "TFLint verification failed"
 fi
 
-docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" tflint || log_fail "tflint execution failed"
+run_in_fixture "tflint" || log_fail "tflint execution failed"
 log_pass "TFLint linting passed"
 
 log_info "Verifying bundled Checkov validator..."
@@ -89,11 +95,7 @@ else
   log_fail "Checkov version check failed"
 fi
 
-docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" checkov \
-  --directory /workspace \
-  --framework terraform \
-  --quiet \
-  --compact || log_fail "Checkov scan failed"
+run_in_fixture "checkov --directory /tmp/work --framework terraform --quiet --compact" || log_fail "Checkov scan failed"
 log_pass "Checkov security scan passed"
 
 echo -e "\n${GREEN}===============================================${NC}"

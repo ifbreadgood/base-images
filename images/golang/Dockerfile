@@ -10,13 +10,20 @@ FROM --platform=$BUILDPLATFORM alpine:3.20 AS tools-downloader
 ARG GOLANGCI_LINT_VERSION=v1.64.6
 ARG TARGETARCH=amd64
 
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+
 RUN apk add --no-cache curl tar
 
 WORKDIR /downloads
 
-RUN curl -fsSL "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${TARGETARCH}.tar.gz" | \
-    tar -xz --strip-components=1 && \
-    chmod 755 golangci-lint
+RUN ARCHIVE="golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${TARGETARCH}.tar.gz" \
+    && BASE_URL="https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}" \
+    && curl -fsSL -o "${ARCHIVE}" "${BASE_URL}/${ARCHIVE}" \
+    && curl -fsSL -o checksums.txt "${BASE_URL}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-checksums.txt" \
+    && grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c - \
+    && tar -xz --strip-components=1 -f "${ARCHIVE}" \
+    && chmod 755 golangci-lint \
+    && rm -f "${ARCHIVE}" checksums.txt
 
 # ------------------------------------------------------------------------------
 # Stage 2: Go Application Builder Image
