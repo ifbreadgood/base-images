@@ -1,0 +1,162 @@
+name: Build and Validate Base Images
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'images/**'
+      - 'scripts/**'
+      - '.github/workflows/build-and-validate.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'images/**'
+      - 'scripts/**'
+      - '.github/workflows/build-and-validate.yml'
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image to build (or "all")'
+        required: false
+        default: 'all'
+      push_images:
+        description: 'Push images to container registry on completion'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint Dockerfiles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Hadolint on all Dockerfiles
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          recursive: true
+          failure-threshold: error
+          ignore: DL3008,DL3013,DL3018
+
+  detect-matrix:
+    name: Detect Matrix Targets
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.generator.outputs.matrix }}
+      has_targets: ${{ steps.generator.outputs.has_targets }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate matrix
+        id: generator
+        run: |
+          chmod +x ./scripts/generate-matrix.sh
+
+          CHANGED_FILES=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} HEAD)
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            if git rev-parse HEAD~1 >/dev/null 2>&1; then
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            fi
+          fi
+
+          SELECTED_IMAGE="${{ inputs.image || 'all' }}"
+          
+          if [ "$SELECTED_IMAGE" != "all" ]; then
+            CHANGED_FILES=""
+          fi
+
+          echo "Selected Image: ${SELECTED_IMAGE}"
+          echo "Changed Files: ${CHANGED_FILES}"
+
+          MATRIX_JSON=$(./scripts/generate-matrix.sh --image "${SELECTED_IMAGE}" --changed-files "${CHANGED_FILES}")
+          echo "Generated Matrix: ${MATRIX_JSON}"
+
+          if echo "${MATRIX_JSON}" | grep -q '"include":\[\]'; then
+            echo "has_targets=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_targets=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "matrix=${MATRIX_JSON}" >> "$GITHUB_OUTPUT"
+
+  build-and-validate:
+    name: Build & Validate (${{ matrix.image_name }})
+    needs: [lint, detect-matrix]
+    if: needs.detect-matrix.outputs.has_targets == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-matrix.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.image_name }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short,prefix=sha-
+            type=ref,event=branch
+            type=ref,event=pr
+
+      - name: Build target image (with maximized GHA cache)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.dir }}
+          file: ./${{ matrix.dir }}/Dockerfile
+          target: ${{ matrix.target || '' }}
+          load: true
+          tags: ${{ matrix.image_name }}:test
+          cache-from: |
+            type=gha,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}
+          cache-to: |
+            type=gha,mode=max,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}
+
+      - name: Validate output image
+        run: |
+          chmod +x ./${{ matrix.dir }}/tests/validate.sh
+          ./${{ matrix.dir }}/tests/validate.sh "${{ matrix.image_name }}:test" "${{ matrix.validation_arg || '' }}"
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.push_images == true }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push image to GHCR
+        if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || inputs.push_images == true }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.dir }}
+          file: ./${{ matrix.dir }}/Dockerfile
+          target: ${{ matrix.target || '' }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=gha,scope=${{ matrix.image_name }}-${{ matrix.target || 'default' }}

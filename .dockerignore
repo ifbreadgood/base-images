@@ -1,0 +1,9 @@
+.git
+.github
+.dockerignore
+*.md
+LICENSE
+scripts/
+**/tests/fixtures/.terraform
+**/tests/fixtures/bin
+**/tests/fixtures/node_modules

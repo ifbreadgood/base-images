@@ -1,0 +1,12 @@
+{
+  "name": "golang",
+  "description": "Go application builder image with BuildKit cache directory optimization and linters",
+  "targets": [
+    {
+      "name": "golang-builder",
+      "target": "builder",
+      "validation_arg": "builder",
+      "default": true
+    }
+  ]
+}

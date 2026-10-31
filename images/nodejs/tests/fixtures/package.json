@@ -1,0 +1,8 @@
+{
+  "name": "sample-node-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node -e \"console.log('Sample node test passed')\""
+  }
+}

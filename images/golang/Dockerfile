@@ -1,0 +1,64 @@
+# syntax=docker/dockerfile:1.7
+
+ARG GO_VERSION=1.24-bookworm
+
+# ------------------------------------------------------------------------------
+# Stage 1: Tools Downloader
+# ------------------------------------------------------------------------------
+FROM --platform=$BUILDPLATFORM alpine:3.20 AS tools-downloader
+
+ARG GOLANGCI_LINT_VERSION=v1.64.6
+ARG TARGETARCH
+
+RUN apk add --no-cache curl tar
+
+WORKDIR /downloads
+
+RUN curl -fsSL "https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${TARGETARCH}.tar.gz" | \
+    tar -xz --strip-components=1 && \
+    chmod 755 golangci-lint
+
+# ------------------------------------------------------------------------------
+# Stage 2: Go Application Builder Image
+# ------------------------------------------------------------------------------
+FROM golang:${GO_VERSION} AS builder
+
+LABEL maintainer="base-images" \
+      org.opencontainers.image.title="Go Application Builder Base Image" \
+      org.opencontainers.image.description="Optimized base image for building Go applications in CI/CD"
+
+ARG USERNAME=builder
+ARG USER_UID=10001
+ARG USER_GID=10001
+
+# Install runtime utilities using persistent BuildKit apt cache
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    make \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install golangci-lint
+COPY --from=tools-downloader /downloads/golangci-lint /usr/local/bin/golangci-lint
+
+# Configure Go cache directories for BuildKit cache mounts
+ENV GOPATH=/go \
+    GOCACHE=/go/cache/build \
+    GOMODCACHE=/go/cache/mod \
+    CGO_ENABLED=0
+
+# Create unprivileged user with access to go cache directories
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
+    && mkdir -p /workspace /go/cache/build /go/cache/mod /go/bin /go/pkg \
+    && chown -R ${USERNAME}:${USERNAME} /workspace /go
+
+WORKDIR /workspace
+USER ${USERNAME}
+
+CMD ["go", "version"]

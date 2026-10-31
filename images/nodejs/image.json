@@ -1,0 +1,12 @@
+{
+  "name": "nodejs",
+  "description": "Node.js application build image with npm, yarn, and pnpm pre-configured",
+  "targets": [
+    {
+      "name": "nodejs-builder",
+      "target": "builder",
+      "validation_arg": "builder",
+      "default": true
+    }
+  ]
+}
