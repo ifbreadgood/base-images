@@ -5,5 +5,4 @@ output "deployed_environment" {
 output "credential_token" {
   value     = var.api_secret_token
   sensitive = true
-  ephemeral = true
 }

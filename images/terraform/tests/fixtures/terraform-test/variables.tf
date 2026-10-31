@@ -12,7 +12,6 @@ variable "api_secret_token" {
   type      = string
   default   = "example-token-placeholder"
   sensitive = true
-  ephemeral = true
 
   validation {
     condition     = length(var.api_secret_token) >= 8
