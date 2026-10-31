@@ -3,27 +3,18 @@
 ARG GO_VERSION=1.26-bookworm
 
 # ------------------------------------------------------------------------------
-# Stage 1: Tools Downloader
+# Stage 1: Tools Builder
 # ------------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM alpine:3.24 AS tools-downloader
-
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS tools-builder
 ARG GOLANGCI_LINT_VERSION=v2.15.0
+ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 
-SHELL ["/bin/ash", "-o", "pipefail", "-c"]
-
-RUN apk add --no-cache curl tar
-
-WORKDIR /downloads
-
-RUN ARCHIVE="golangci-lint-${GOLANGCI_LINT_VERSION#v}-linux-${TARGETARCH}.tar.gz" \
-    && BASE_URL="https://github.com/golangci/golangci-lint/releases/download/${GOLANGCI_LINT_VERSION}" \
-    && curl -fsSL -o "${ARCHIVE}" "${BASE_URL}/${ARCHIVE}" \
-    && curl -fsSL -o checksums.txt "${BASE_URL}/golangci-lint-${GOLANGCI_LINT_VERSION#v}-checksums.txt" \
-    && grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c - \
-    && tar -xz --strip-components=1 -f "${ARCHIVE}" \
-    && chmod 755 golangci-lint \
-    && rm -f "${ARCHIVE}" checksums.txt
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOBIN=/downloads CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go install -ldflags="-s -w -X main.version=${GOLANGCI_LINT_VERSION#v}" \
+    github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
 
 # ------------------------------------------------------------------------------
 # Stage 2: Go Application Builder Image
@@ -55,7 +46,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     && rm -rf /var/lib/apt/lists/*
 
 # Install golangci-lint
-COPY --from=tools-downloader /downloads/golangci-lint /usr/local/bin/golangci-lint
+COPY --from=tools-builder /downloads/golangci-lint /usr/local/bin/golangci-lint
 
 # Configure Go cache directories for BuildKit cache mounts
 ENV GOPATH=/go \
