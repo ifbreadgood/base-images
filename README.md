@@ -51,7 +51,7 @@ Scalable, multi-image monorepo containing production-ready, security-hardened ba
 | Image | Variants (`image.json` targets) | Base OS | Bundled tools | User (UID/GID) |
 | :--- | :--- | :--- | :--- | :--- |
 | `terraform` | `terraform-1.16` (v1.16.7), `terraform-1.17` (v1.17.1) | Debian Bookworm (`python:3.12-slim`) | Terraform, TFLint, Checkov, `git`, `jq`, `curl`, `openssh-client` | `terraform` (10001/10001) |
-| `golang` | `golang-builder` | Debian Bookworm (`golang:1.24`) | `golangci-lint`, `make`, `git`, `jq`, `curl`, `openssh-client` | `builder` (10001/10001) |
+| `golang` | `golang-builder` | Debian Bookworm (`golang:1.26`) | `golangci-lint`, `make`, `git`, `jq`, `curl`, `openssh-client` | `builder` (10001/10001) |
 | `nodejs` | `nodejs-builder` | Debian Bookworm Slim (`node:22`) | npm, pnpm, Yarn (pinned via Corepack), `git`, `jq`, `curl`, `openssh-client` | `node` (10001/10001) |
 
 Runtime environment variables: `terraform` sets `TF_IN_AUTOMATION=1`, `TF_INPUT=0`; `golang` sets `GOPATH`, `GOCACHE`, `GOMODCACHE`, `CGO_ENABLED=0`; `nodejs` sets `PNPM_HOME`, `COREPACK_DEFAULT_TO_LATEST=0`.
