@@ -6,7 +6,7 @@ ARG TERRAFORM_VERSION=1.16.7
 # ------------------------------------------------------------------------------
 # Stage 1: Terraform Downloader (runs natively on build host for speed)
 # ------------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS terraform-downloader
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS terraform-downloader
 
 ARG TARGETARCH=amd64
 ARG TERRAFORM_VERSION
@@ -28,7 +28,7 @@ RUN ARCHIVE="terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" \
 # ------------------------------------------------------------------------------
 # Stage 2: TFLint Downloader (runs natively on build host for speed)
 # ------------------------------------------------------------------------------
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS tflint-downloader
+FROM --platform=$BUILDPLATFORM alpine:3.24 AS tflint-downloader
 
 ARG TARGETARCH=amd64
 ARG TFLINT_VERSION=v0.65.0
