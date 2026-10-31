@@ -1,18 +1,20 @@
-# Terraform Base Images
+# Terraform Base Image
 
-Multi-stage, BuildKit-optimized images for Terraform workflows.
+Multi-stage, BuildKit-optimized base image for Terraform workflows.
 
-## Variants
+## Features
 
-- **`terraform-runner`** (Default): Includes Terraform v1.17+, TFLint, Checkov, Git, Curl, JQ, and OpenSSH.
-- **`terraform-base`**: Minimal image with Terraform v1.17+ and core CI tools.
+- **Terraform v1.16+** (default `1.16.7`).
+- **Pre-installed Validators**: Includes `tflint` and `checkov` inside the base image.
+- **CI Tooling**: Bundled with `git`, `jq`, `curl`, and `openssh-client`.
+- **Security Hardened**: Non-root user `terraform` (UID `10001`).
 
 ## Build and Validate Locally
 
 ```bash
-# Build runner image
-docker build --target terraform-runner -t terraform-runner:test images/terraform
+# Build base image
+docker build --target terraform-base -t terraform-base:test images/terraform
 
 # Run validation tests
-./images/terraform/tests/validate.sh terraform-runner:test runner
+./images/terraform/tests/validate.sh terraform-base:test
 ```

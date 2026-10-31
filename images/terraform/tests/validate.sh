@@ -2,10 +2,10 @@
 set -euo pipefail
 
 IMAGE_TAG="${1:-}"
-TARGET_TYPE="${2:-runner}"
+TARGET_TYPE="${2:-base}"
 
 if [[ -z "$IMAGE_TAG" ]]; then
-  echo "Usage: $0 <image-tag> [runner|base]"
+  echo "Usage: $0 <image-tag> [target]"
   exit 1
 fi
 
@@ -30,7 +30,7 @@ log_fail() {
   exit 1
 }
 
-log_info "Starting validation for image: ${IMAGE_TAG} (target: ${TARGET_TYPE})"
+log_info "Starting validation for Terraform base image: ${IMAGE_TAG}"
 
 # 1. Non-root user validation
 log_info "Checking container user UID..."
@@ -51,13 +51,13 @@ else
 fi
 
 # 3. Terraform binary and version check
-log_info "Verifying Terraform version v1.17..."
+log_info "Verifying Terraform version v1.16..."
 TF_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" terraform version)"
 echo "$TF_VERSION_OUTPUT"
-if echo "$TF_VERSION_OUTPUT" | grep -qE "Terraform v1\.17\."; then
-  log_pass "Terraform version 1.17 verified"
+if echo "$TF_VERSION_OUTPUT" | grep -qE "Terraform v1\.16\."; then
+  log_pass "Terraform version 1.16 verified"
 else
-  log_fail "Terraform version v1.17 not detected in output"
+  log_fail "Terraform version v1.16 not detected in output"
 fi
 
 # 4. Terraform formatting and validation check
@@ -67,36 +67,34 @@ docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" terr
 docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" terraform validate || log_fail "terraform validate failed"
 log_pass "Terraform initialization and validation passed"
 
-# 5. Runner-specific tools validation (TFLint and Checkov)
-if [[ "${TARGET_TYPE}" == "runner" ]]; then
-  log_info "Verifying TFLint version and execution..."
-  TFLINT_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" tflint --version)"
-  echo "$TFLINT_VERSION_OUTPUT"
-  if echo "$TFLINT_VERSION_OUTPUT" | grep -qi "tflint"; then
-    log_pass "TFLint binary detected"
-  else
-    log_fail "TFLint verification failed"
-  fi
-
-  docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" tflint || log_fail "tflint execution failed"
-  log_pass "TFLint linting passed"
-
-  log_info "Verifying Checkov version and security scan execution..."
-  CHECKOV_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" checkov --version)"
-  echo "Checkov version: ${CHECKOV_VERSION_OUTPUT}"
-  if [[ -n "${CHECKOV_VERSION_OUTPUT}" ]]; then
-    log_pass "Checkov version detected: ${CHECKOV_VERSION_OUTPUT}"
-  else
-    log_fail "Checkov version check failed"
-  fi
-
-  docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" checkov \
-    --directory /workspace \
-    --framework terraform \
-    --quiet \
-    --compact || log_fail "Checkov scan failed"
-  log_pass "Checkov security scan passed"
+# 5. Bundled validators verification (TFLint and Checkov)
+log_info "Verifying bundled TFLint validator..."
+TFLINT_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" tflint --version)"
+echo "$TFLINT_VERSION_OUTPUT"
+if echo "$TFLINT_VERSION_OUTPUT" | grep -qi "tflint"; then
+  log_pass "TFLint binary detected"
+else
+  log_fail "TFLint verification failed"
 fi
+
+docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" tflint || log_fail "tflint execution failed"
+log_pass "TFLint linting passed"
+
+log_info "Verifying bundled Checkov validator..."
+CHECKOV_VERSION_OUTPUT="$(docker run --rm "${IMAGE_TAG}" checkov --version)"
+echo "Checkov version: ${CHECKOV_VERSION_OUTPUT}"
+if [[ -n "${CHECKOV_VERSION_OUTPUT}" ]]; then
+  log_pass "Checkov version detected: ${CHECKOV_VERSION_OUTPUT}"
+else
+  log_fail "Checkov version check failed"
+fi
+
+docker run --rm -v "${FIXTURE_DIR}:/workspace" -w /workspace "${IMAGE_TAG}" checkov \
+  --directory /workspace \
+  --framework terraform \
+  --quiet \
+  --compact || log_fail "Checkov scan failed"
+log_pass "Checkov security scan passed"
 
 echo -e "\n${GREEN}===============================================${NC}"
 echo -e "${GREEN}  All validation tests passed successfully!   ${NC}"

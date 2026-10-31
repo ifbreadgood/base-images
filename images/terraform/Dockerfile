@@ -8,7 +8,7 @@ ARG PYTHON_VERSION=3.12-slim-bookworm
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS terraform-downloader
 
 ARG TARGETARCH=amd64
-ARG TERRAFORM_VERSION=1.17.1
+ARG TERRAFORM_VERSION=1.16.7
 
 RUN apk add --no-cache curl unzip ca-certificates
 
@@ -66,13 +66,13 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     /opt/checkov-venv/bin/pip install "checkov==${CHECKOV_VERSION}"
 
 # ------------------------------------------------------------------------------
-# Stage 4: Minimal Terraform Base Image
+# Stage 4: Complete Terraform Base Image (includes TFLint & Checkov validators)
 # ------------------------------------------------------------------------------
 FROM python:${PYTHON_VERSION} AS terraform-base
 
 LABEL maintainer="base-images" \
-      org.opencontainers.image.title="Terraform Base CI Image" \
-      org.opencontainers.image.description="Minimal Terraform CI runner image with core utilities"
+      org.opencontainers.image.title="Terraform Base Image" \
+      org.opencontainers.image.description="Terraform v1.16 CI/CD base image with bundled TFLint and Checkov validators"
 
 ARG USERNAME=terraform
 ARG USER_UID=10001
@@ -99,8 +99,17 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 # Install Terraform binary
 COPY --from=terraform-downloader /downloads/terraform /usr/local/bin/terraform
 
-ENV TF_IN_AUTOMATION=1 \
-    TF_INPUT=0
+# Install TFLint binary
+COPY --from=tflint-downloader /downloads/tflint /usr/local/bin/tflint
+
+# Install pre-built Checkov virtual environment
+COPY --from=checkov-builder --chown=10001:10001 /opt/checkov-venv /opt/checkov-venv
+RUN ln -s /opt/checkov-venv/bin/checkov /usr/local/bin/checkov
+
+ENV PATH="/opt/checkov-venv/bin:${PATH}" \
+    TF_IN_AUTOMATION=1 \
+    TF_INPUT=0 \
+    CHECK_TF_PLUGIN_CACHE_DIR=/workspace/.terraform.d/plugin-cache
 
 WORKDIR /workspace
 USER ${USERNAME}
@@ -108,37 +117,13 @@ USER ${USERNAME}
 CMD ["/bin/bash"]
 
 # ------------------------------------------------------------------------------
-# Stage 5: Full Terraform Runner (Terraform v1.17 + TFLint + Checkov)
+# Stage 5: In-Build Smoke Test Target
 # ------------------------------------------------------------------------------
-FROM terraform-base AS terraform-runner
-
-LABEL org.opencontainers.image.title="Terraform Runner Image" \
-      org.opencontainers.image.description="Terraform CI/CD runner containing Terraform v1.17, TFLint, and Checkov"
-
-USER root
-
-# Install TFLint binary
-COPY --from=tflint-downloader /downloads/tflint /usr/local/bin/tflint
-
-# Copy pre-built Checkov virtual environment with correct permissions
-COPY --from=checkov-builder --chown=10001:10001 /opt/checkov-venv /opt/checkov-venv
-RUN ln -s /opt/checkov-venv/bin/checkov /usr/local/bin/checkov
-
-ENV PATH="/opt/checkov-venv/bin:${PATH}" \
-    CHECK_TF_PLUGIN_CACHE_DIR=/workspace/.terraform.d/plugin-cache
-
-USER 10001
-
-CMD ["/bin/bash"]
-
-# ------------------------------------------------------------------------------
-# Stage 6: In-Build Smoke Test Target
-# ------------------------------------------------------------------------------
-FROM terraform-runner AS test
+FROM terraform-base AS test
 
 USER 10001
 
 # Execute verification checks inside container during BuildKit build
-RUN terraform version | grep -E "Terraform v1\.17\." \
+RUN terraform version | grep -E "Terraform v1\.16\." \
     && tflint --version \
     && checkov --version

@@ -1,18 +1,12 @@
 {
   "name": "terraform",
-  "description": "Terraform runner image containing Terraform v1.17, TFLint, and Checkov",
+  "description": "Terraform v1.16 base image containing Terraform, TFLint, and Checkov validators",
   "targets": [
-    {
-      "name": "terraform-runner",
-      "target": "terraform-runner",
-      "validation_arg": "runner",
-      "default": true
-    },
     {
       "name": "terraform-base",
       "target": "terraform-base",
       "validation_arg": "base",
-      "default": false
+      "default": true
     }
   ]
 }
