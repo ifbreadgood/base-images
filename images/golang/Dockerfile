@@ -6,7 +6,6 @@ ARG GO_VERSION=1.26-bookworm
 # Stage 1: Tools Builder
 # ------------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION} AS tools-builder
-
 ARG GOLANGCI_LINT_VERSION=v2.15.0
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
