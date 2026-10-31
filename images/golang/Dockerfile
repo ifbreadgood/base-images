@@ -34,6 +34,7 @@ LABEL maintainer="base-images" \
       org.opencontainers.image.title="Go Application Builder Base Image" \
       org.opencontainers.image.description="Optimized base image for building Go applications in CI/CD"
 
+# hadolint ignore=DL3064
 ARG USERNAME=builder
 ARG USER_UID=10001
 ARG USER_GID=10001
