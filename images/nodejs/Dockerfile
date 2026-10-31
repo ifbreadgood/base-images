@@ -12,7 +12,7 @@ LABEL maintainer="base-images" \
 ARG USERNAME=node
 ARG USER_UID=10001
 ARG USER_GID=10001
-ARG PNPM_VERSION=10.6.1
+ARG PNPM_VERSION=10.34.9
 ARG YARN_VERSION=1.22.22
 
 # Install essential build tools using BuildKit persistent apt cache
@@ -32,12 +32,14 @@ RUN groupmod --gid ${USER_GID} ${USERNAME} \
 
 # Enable Corepack for native Yarn and pnpm support
 ENV COREPACK_DEFAULT_TO_LATEST=0 \
+    COREPACK_HOME="/home/node/.cache/node/corepack" \
     PNPM_HOME="/home/node/.local/share/pnpm" \
     PATH="/home/node/.local/share/pnpm:${PATH}"
 
 RUN corepack enable \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate \
-    && corepack prepare "yarn@${YARN_VERSION}" --activate
+    && corepack prepare "yarn@${YARN_VERSION}" --activate \
+    && rm -rf /root/.cache
 
 # Prepare working directory
 RUN mkdir -p /workspace /home/node/.npm /home/node/.cache \
