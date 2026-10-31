@@ -8,7 +8,7 @@ ARG GO_VERSION=1.24-bookworm
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS tools-downloader
 
 ARG GOLANGCI_LINT_VERSION=v1.64.6
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 
 RUN apk add --no-cache curl tar
 

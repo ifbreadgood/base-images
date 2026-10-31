@@ -7,38 +7,40 @@ ARG PYTHON_VERSION=3.12-slim-bookworm
 # ------------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS terraform-downloader
 
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 ARG TERRAFORM_VERSION=1.17.1
 
 RUN apk add --no-cache curl unzip ca-certificates
 
 WORKDIR /downloads
 
-RUN curl -fsSL -o terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" \
+RUN ARCHIVE="terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" \
+    && curl -fsSL -o "${ARCHIVE}" "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/${ARCHIVE}" \
     && curl -fsSL -o tf_checksums "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_SHA256SUMS" \
-    && grep "terraform_${TERRAFORM_VERSION}_linux_${TARGETARCH}.zip" tf_checksums | sha256sum -c - \
-    && unzip terraform.zip \
+    && grep "${ARCHIVE}" tf_checksums | sha256sum -c - \
+    && unzip "${ARCHIVE}" \
     && chmod 755 terraform \
-    && rm terraform.zip tf_checksums
+    && rm -f "${ARCHIVE}" tf_checksums
 
 # ------------------------------------------------------------------------------
 # Stage 2: TFLint Downloader (runs natively on build host for speed)
 # ------------------------------------------------------------------------------
 FROM --platform=$BUILDPLATFORM alpine:3.20 AS tflint-downloader
 
-ARG TARGETARCH
+ARG TARGETARCH=amd64
 ARG TFLINT_VERSION=v0.65.0
 
 RUN apk add --no-cache curl unzip ca-certificates
 
 WORKDIR /downloads
 
-RUN curl -fsSL -o tflint.zip "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_${TARGETARCH}.zip" \
+RUN ARCHIVE="tflint_linux_${TARGETARCH}.zip" \
+    && curl -fsSL -o "${ARCHIVE}" "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/${ARCHIVE}" \
     && curl -fsSL -o tflint_checksums "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/checksums.txt" \
-    && grep "tflint_linux_${TARGETARCH}.zip" tflint_checksums | sha256sum -c - \
-    && unzip tflint.zip \
+    && grep "${ARCHIVE}" tflint_checksums | sha256sum -c - \
+    && unzip "${ARCHIVE}" \
     && chmod 755 tflint \
-    && rm tflint.zip tflint_checksums
+    && rm -f "${ARCHIVE}" tflint_checksums
 
 # ------------------------------------------------------------------------------
 # Stage 3: Checkov Python Builder
